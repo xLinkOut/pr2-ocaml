@@ -1,3 +1,7 @@
+(*
+	Convenzione: dict va sempre come ultimo parametro nelle funzioni
+*)
+
 (* Grammatica del linguaggio *)
 type ide = string;;
 type exp =
@@ -19,15 +23,14 @@ type exp =
     | FunCall of exp * exp
     | Letrec of ide * exp * exp
     (* Estensione dizionari *)
-    | Estring of string
     | Dict of (ide * exp) list
-    | Insert of ide * exp * exp
-    | Delete of exp * ide
-    | HasKey of ide * exp
-    | Iterate of exp * exp
-    | Fold of exp * exp
-    | Filter of ide list * exp;;
-
+    | Insert of ide * exp * exp (* key, value, dict *)
+    | Delete of ide * exp (* key, dict *)
+    | HasKey of ide * exp (* key, dict *)
+    | Iterate of exp * exp (* funct, dict *)
+    | Fold of exp * exp (* funct, dict *)
+    | Filter of ide list * exp (* key_list, dict *)
+;;
 
 (* Ambiente *)
 type 't env = ide -> 't;;
@@ -153,7 +156,6 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
         (match funDef with
         | Fun(i, fBody) -> let r1 = (bind ambiente f (RecFunVal(f, (i, fBody, ambiente)))) in eval bodyOfLet r1
         | _ -> failwith("non functional def"))
-    | Estring s -> String s
     (* Estensione dizionari *)
 
     (*
@@ -164,9 +166,9 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
         chiavi all'interno del dizionario.
         @params:
             <initList> : lista di coppie (<key>, <value>) (può anche essere vuota)
-        @fail: se <dict> non è un dizionario DictValue
         @fail: se <key> è già presente in una qualche coppia all'interno di <initList>
-        @return: un dizionario (DictValue), eventualmente inizializzato con le coppie contenute in <initList>
+        @fail: se <dict> non è un dizionario DictValue
+        @return: un dizionario di tipo DictValue, eventualmente inizializzato con le coppie contenute in <initList>
     *)
     | Dict(initList) ->
         (*
@@ -191,30 +193,29 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
         
         (* ritorno un DictValue, che appartiene ai tipi esprimibili *)
         in DictValue(evaluateList initList ambiente)
-    (*
+    
+	(*
         Inserisce nel dizionario una coppia (<key>, <value>), 
         se non è già presente un'altra coppia con la stessa chiave.
         @params:
             <key>   : chiave della coppia
             <value> : valore della coppia
             <dict>  : dizionario in cui inserire la coppia
-        @fail: se <dict> non è un dizionario DictValue
         @fail: se <key> è già presente in una qualche coppia all'interno di <dict>
-        @return: un nuovo dizionario contenente la nuova coppia, se non ne era già presente
-            una con la stessa <key> nel dizionario iniziale
+        @fail: se <dict> non è un dizionario di tipo DictValue
+        @return: un nuovo dizionario di tipo DictValue contenente la nuova coppia, 
+			se non ne era già presente una con la stessa <key> nel dizionario iniziale
     *)
     | Insert(key, value, dict) -> (match eval dict ambiente with
         DictValue evaluatedDict ->
             let rec insert (key : ide) (value : evT) (dict : (ide * evT) list) : (ide * evT) list =
                 (match dict with
-                    (* se il dizionario è vuoto/non esiste una chiave con lo stesso nome, 
-                        inserisco la coppia richiesta *)
-                    | [] -> (key, value)::[]
+                    | [] -> (key, value)::[] (* dizionario vuoto/chiave non presente -> inserisco la coppia *)
                     | (k, v)::t ->
                         (* se ho trovato una chiave uguale, non inserisco la coppia *)
                         if (key = k) then failwith("<key> duplicata, non posso inserire la coppia") (*(k, v)::t*)
                         (* altrimenti itero sul dizionario per cercare un'eventuale chiave già esistente,
-                            inserendo, nel caso, la nuova coppia in fondo al dizionario *)
+                            inserendo, nel caso, la nuova coppia in fondo *)
                         else (k, v)::(insert key value t))
             in DictValue(insert key (eval value ambiente) evaluatedDict)
         | _ -> failwith("<dict> non è un dizionario"))
@@ -224,13 +225,12 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
         @params:
             <key>  : chiave da cercare nel dizionare ed eventualmente eliminare
             <dict> : dizionario da cui eliminare la coppia con chiave <key>
-        @fail: se <dict> non è un dizionario DictValue
-        @return : un nuovo dizionario senza la coppia con chiave <key>, se era presente nel 
-            dizionario iniziale
+        @fail: se <dict> non è un dizionario di tipo DictValue
+        @return : un nuovo dizionario di tipo DictValue senza la coppia con chiave <key>, 
+			se era presente nel dizionario iniziale
     *)
-
-    | Delete(dict,key) -> (match eval dict ambiente with
-        | DictValue evaluatedDict ->
+    | Delete(key, dict) -> (match eval dict ambiente with
+        DictValue evaluatedDict ->
             let rec delete (key : ide) (dict : (ide * evT) list) : (ide * evT) list =
                 match dict with
                     | [] -> [] (* dizionario vuoto/chiave non trovata *)
@@ -241,21 +241,83 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
         | _ -> failwith("<dict> non è un dizionario"))
 
     (* 
-        Controlla se una chiave <key> esiste in un certo dizionario <dict>:
-        ritorna True in caso affermativo, False altrimenti.
-        <key>  : chiave da cercare
-        <dict> : dizionario in cui cercare la chiave
+        Controlla la presenza di una chiave <key> in un dizionario <dict>.
+		@params:
+			<key>  : chiave da cercare
+			<dict> : dizionario in cui cercare la chiave
+        @fail: se <dict> non è un dizionario di tipo DictValue
+		@return: true se la chiave esiste nel dizionario, false altrimenti
     *)
-    | HasKey(key,dict) -> match eval dict ambiente with
-          DictValue v ->
+    | HasKey(key, dict) -> (match eval dict ambiente with
+        DictValue evaluatedDict ->
             let rec contains (key : ide) (dict : (ide * evT) list) : bool =
                 match dict with
                     | [] -> false (* dizionario vuoto/chiave non presente, ritorno false *)
                     | (k, _)::t -> 
                         if (key = k) then true (* chiave trovata, ritorno true *)
-                        else contains key t (* continuo ad iterare *)
-            in Bool(contains key v)
-        | _ -> failwith("<dict> non è un dizionario")
+                        else contains key t (* continuo a cercare *)
+            in Bool(contains key evaluatedDict)
+        | _ -> failwith("<dict> non è un dizionario"))
+	
+	(*
+		Applica la funzione <funct> ad ogni coppia presente nel dizionario <dict>.
+		@params:
+			<funct> : funzione da applicare ad ogni coppia del dizionario
+			<dict>  : dizionare su cui applicare la funzione
+        @fail: se <dict> non è un dizionario di tipo DictValue
+		@return: un nuovo dizionario di tipo DictValue con i valori ottenuti come risultato della funzione
+	*)
+	| Iterate(funct, dict) -> (match eval funct ambiente, dict with
+		FunVal(_, _, _), Dict evaluatedDict ->
+			let rec apply (f : exp) (dict : (ide * exp) list) (ambiente : evT env) : (ide * evT) list =
+				match dict with
+					| [] -> []
+					| (k, v)::t -> (k, eval (FunCall(f, v)) ambiente)::(apply f t ambiente)
+			in DictValue(apply funct evaluatedDict ambiente)
+        | _ -> failwith("<dict> non è un dizionario"))
+	
+	(*
+		Applica la funzione <funct> sequenzialmente a tutti gli elementi del dizionario,
+		calcolando un unico risultato.
+		@params:
+			<funct> : funzione da applicare sequenzialmente ad ogni coppia del dizionario
+			<dict>  : dizionare su cui applicare la funzione
+		@fail: se <funct> non è compatibile con il tipo di almeno un elemento
+        @fail: se <dict> non è un dizionario di tipo DictValue
+		@return: un unico valore, risultato della funzione <funct>
+	*)
+	| Fold(funct, dict) -> (match eval funct ambiente, dict with
+		FunVal(_, _, _), Dict evaluatedDict ->
+			let rec fold (f : exp) (dict : (ide * exp) list) (acc : evT) (ambiente : evT env) : evT =
+				match dict with
+					| [] -> acc
+					| (_, v1)::t -> match acc, (eval (FunCall(f, v1)) ambiente) with
+									| (Int(u), Int(v)) -> fold f t (Int(u+v)) ambiente
+									| _ -> failwith("Errore durante l'applicazione della funzione")
+				in fold funct evaluatedDict (Int(0)) ambiente
+        | _ -> failwith("<dict> non è un dizionario"))
+	
+	(*
+		Filtra il dizionario, restituendo un nuovo dizionario ottenuto eliminando dall'originale
+		tutte le coppie la cui chiave non è presente in keyList.
+		@params:
+			<ketList> : lista di chiavi da mantenere nel nuovo dizionario
+			<dict>    : dizionario da filtrare
+        @fail: se <dict> non è un dizionario di tipo DictValue
+		@return: un nuovo dizionario di tipo DictValue, 
+			contenente solo le coppie la cui chiave appartiene a <keyList>
+	*)
+    | Filter(keylist, dict) -> (match eval dict ambiente with
+      	DictValue evaluatedDict ->
+			let rec filter (l : ide list) (dict : (ide * evT) list) : (ide * evT) list =
+				match dict with
+					| [] -> []
+					| (k, v)::t -> 
+						if (List.mem k l) then (k, v)::(filter l t) 
+						else filter l t
+			in DictValue(filter keylist evaluatedDict)
+        | _ -> failwith("<dict> non è un dizionario"))
+
 ;;
 
 (* == DICT TESTS == *)
@@ -273,7 +335,7 @@ let myDict = Dict([
     ("pere",   Eint(217))
 ]);;
 eval myDict myEnv;;
-(* - : evT = DictValue[("mele", Int 430); ... ;("pere", Int 217)] *)
+(* DictValue[("mele", Int 430); ... ;("pere", Int 217)] *)
 
 let myDictWrong = Dict([
     ("mele", Eint(12));
@@ -282,15 +344,58 @@ let myDictWrong = Dict([
 eval myDictWrong myEnv;;
 (* duplicated key error *)
 
-(* Insert *)
+(* Insert, chiave non esistente *)
 eval (Insert("kiwi", Eint(300), myDict)) myEnv;; 
 (* [("mele", Int 430); ... ;("kiwi", Int 300)] *)
 
-(* Duplicate insert *)
+(* Insert, chiave esistente *)
 eval (Insert("mele", Eint(550), myDict)) myEnv;; 
-(* Exception: Failure "<key> duplicata, non posso inserire la coppia". *)
+(* Exception: Failure "<key> duplicata, non posso inserire la coppia" *)
 
-(* Delete *)
-(*eval (Delete("banane", myDict)) myEnv;;
-(* Delete su una chiave non esistente *)
-eval (Delete("pesche", myDict)) myEnv;;*)
+(* Delete, chiave esistente *)
+eval (Delete("banane", myDict)) myEnv;;
+(* DictValue [("mele", Int 430); ("arance", Int 525); ("pere", Int 217)] *)
+
+(* Delete, chiave non esistente *)
+eval (Delete("pesche", myDict)) myEnv;;
+(* DictValue [("mele", Int 430); ("banane", Int 312); ("arance", Int 525); ("pere", Int 217)]) *)
+
+(* HasKey, chiave esistente *)
+eval (HasKey("arance", myDict)) myEnv;;
+(* Bool true *)
+
+(* HasKey, chiave non esistente *)
+eval (HasKey("kiwi", myDict)) myEnv;;
+(* Bool false *)
+
+(* Iterate, funzione incremento (+1) *)
+eval (Iterate(Fun("y", Sum(Den "y", Eint 1)), myDict)) myEnv;;
+(* DictValue [("mele", Int 431); ("banane", Int 313); ("arance", Int 526); ("pere", Int 218)]) *)
+
+(* Fold, funzione somma *)
+eval (Fold(Fun("y", Sum(Den "y", Eint 0)), myDict)) myEnv;;
+(* Int 1484 *)
+
+(* Fold, funzione differenza *)
+eval (Fold(Fun("y", Diff(Den "y", Eint 5)), myDict)) myEnv;;
+(* Int 1464 *)
+
+(* Fold, funzione prodotto *)
+eval (Fold(Fun("y", Prod(Den "y", Eint 2)), myDict)) myEnv;;
+(* Int 2968 *)
+
+(* Fold, incompatibile *)
+eval (Fold(Fun("y", Or(Den "y", Ebool false)), myDict)) myEnv;;
+(* Exception: Failure "Errore di tipo" *)
+
+(* Filter *)
+eval (Filter(["mele"; "pere"], myDict)) myEnv;;
+(* DictValue [("mele", Int 430); ("pere", Int 217)] *)
+
+(* Filter, con una chiave inesistente *)
+eval (Filter(["mele";"pesche"],myDict)) myEnv;;
+(* DictValue [("mele", Int 430)] *)
+
+(* Filter, con tutte le chiavi inesistenti *)
+eval (Filter(["kiwi";"pesche"],myDict)) myEnv;;
+(* DictValue [] *)
