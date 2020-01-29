@@ -43,10 +43,9 @@ let bind (ambiente : 't env) (identificatore : ide) (valore : 't) =
 type evT =
       Int of int
     | Bool of bool
-    | String of string
-    | Unbound
     | FunVal of evFun
     | RecFunVal of ide * evFun
+    | Unbound
     (* Estensione dizionari *)
     | DictValue of (ide * evT) list
 
@@ -54,22 +53,20 @@ and evFun = ide * exp * evT env;;
 
 (* Type checker dinamico *)
 let typecheck (tipo : string) (valore : evT) : bool = match tipo with
-      "int" -> (match valore with
-          Int(_) -> true
-        | _      -> false)
+    "int" -> (match valore with
+        Int(_) -> true
+        | _    -> false)
     | "bool" -> (match valore with
-          Bool(_) -> true
-        | _       -> false)
-    | _ -> failwith("Non e' un tipo valido");;
+        Bool(_) -> true
+        | _     -> false)
+    | "dict" -> (match valore with
+		DictValue(_) -> true
+		| _          -> false)
+	| _ -> failwith("Non e' un tipo valido")
+;;
 
 
 (* Funzioni primitive *)
-let prod x y = if (typecheck "int" x) && (typecheck "int" y)
-    then (match (x,y) with
-          (Int(n), Int(u)) -> Int(n * u)
-        | _ -> failwith("Errore durante l'applicazione della funzione"))
-    else failwith("Errore di tipo");;
-
 let sum x y  = if (typecheck "int" x) && (typecheck "int" y)
     then (match (x,y) with
           (Int(n), Int(u)) -> Int(n + u)
@@ -79,6 +76,12 @@ let sum x y  = if (typecheck "int" x) && (typecheck "int" y)
 let diff x y = if (typecheck "int" x) && (typecheck "int" y)
     then (match (x,y) with
           (Int(n), Int(u)) -> Int(n - u)
+        | _ -> failwith("Errore durante l'applicazione della funzione"))
+    else failwith("Errore di tipo");;
+
+let prod x y = if (typecheck "int" x) && (typecheck "int" y)
+    then (match (x,y) with
+          (Int(n), Int(u)) -> Int(n * u)
         | _ -> failwith("Errore durante l'applicazione della funzione"))
     else failwith("Errore di tipo");;
 
@@ -211,12 +214,12 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
             let rec insert (key : ide) (value : evT) (dict : (ide * evT) list) : (ide * evT) list =
                 (match dict with
                     | [] -> (key, value)::[] (* dizionario vuoto/chiave non presente -> inserisco la coppia *)
-                    | (k, v)::t ->
+                    | (k, v)::tail ->
                         (* se ho trovato una chiave uguale, non inserisco la coppia *)
-                        if (key = k) then failwith("<key> duplicata, non posso inserire la coppia") (*(k, v)::t*)
+                        if (key = k) then failwith("<key> duplicata, non posso inserire la coppia") (*(k, v)::tail*)
                         (* altrimenti itero sul dizionario per cercare un'eventuale chiave già esistente,
                             inserendo, nel caso, la nuova coppia in fondo *)
-                        else (k, v)::(insert key value t))
+                        else (k, v)::(insert key value tail))
             in DictValue(insert key (eval value ambiente) evaluatedDict)
         | _ -> failwith("<dict> non è un dizionario"))
     
@@ -234,9 +237,9 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
             let rec delete (key : ide) (dict : (ide * evT) list) : (ide * evT) list =
                 match dict with
                     | [] -> [] (* dizionario vuoto/chiave non trovata *)
-                    | (k, v)::t -> 
-                        if (key = k) then t (* se ho trovato la chiave, rimuovo la coppia *)
-                        else (k, v)::(delete key t) (* altrimenti continuo ad iterare *)
+                    | (k, v)::tail -> 
+                        if (key = k) then tail (* se ho trovato la chiave, rimuovo la coppia *)
+                        else (k, v)::(delete key tail) (* altrimenti continuo ad iterare *)
             in DictValue(delete key evaluatedDict)
         | _ -> failwith("<dict> non è un dizionario"))
 
@@ -253,9 +256,9 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
             let rec contains (key : ide) (dict : (ide * evT) list) : bool =
                 match dict with
                     | [] -> false (* dizionario vuoto/chiave non presente, ritorno false *)
-                    | (k, _)::t -> 
+                    | (k, _)::tail -> 
                         if (key = k) then true (* chiave trovata, ritorno true *)
-                        else contains key t (* continuo a cercare *)
+                        else contains key tail (* continuo a cercare *)
             in Bool(contains key evaluatedDict)
         | _ -> failwith("<dict> non è un dizionario"))
 	
@@ -272,7 +275,7 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
 			let rec apply (f : exp) (dict : (ide * exp) list) (ambiente : evT env) : (ide * evT) list =
 				match dict with
 					| [] -> []
-					| (k, v)::t -> (k, eval (FunCall(f, v)) ambiente)::(apply f t ambiente)
+					| (k, v)::tail -> (k, eval (FunCall(f, v)) ambiente)::(apply f tail ambiente)
 			in DictValue(apply funct evaluatedDict ambiente)
         | _ -> failwith("<dict> non è un dizionario"))
 	
@@ -291,8 +294,8 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
 			let rec fold (f : exp) (dict : (ide * exp) list) (acc : evT) (ambiente : evT env) : evT =
 				match dict with
 					| [] -> acc
-					| (_, v1)::t -> match acc, (eval (FunCall(f, v1)) ambiente) with
-									| (Int(u), Int(v)) -> fold f t (Int(u+v)) ambiente
+					| (_, v1)::tail -> match acc, (eval (FunCall(f, v1)) ambiente) with
+									| (Int(u), Int(v)) -> fold f tail (Int(u+v)) ambiente
 									| _ -> failwith("Errore durante l'applicazione della funzione")
 				in fold funct evaluatedDict (Int(0)) ambiente
         | _ -> failwith("<dict> non è un dizionario"))
@@ -312,9 +315,9 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
 			let rec filter (l : ide list) (dict : (ide * evT) list) : (ide * evT) list =
 				match dict with
 					| [] -> []
-					| (k, v)::t -> 
-						if (List.mem k l) then (k, v)::(filter l t) 
-						else filter l t
+					| (k, v)::tail -> 
+						if (List.mem k l) then (k, v)::(filter l tail) 
+						else filter l tail
 			in DictValue(filter keylist evaluatedDict)
         | _ -> failwith("<dict> non è un dizionario"))
 
