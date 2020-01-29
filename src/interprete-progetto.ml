@@ -1,7 +1,3 @@
-(*
-	Convenzione: dict va sempre come ultimo parametro nelle funzioni
-*)
-
 (* Grammatica del linguaggio *)
 type ide = string;;
 type exp =
@@ -29,7 +25,7 @@ type exp =
     | HasKey of ide * exp (* key, dict *)
     | Iterate of exp * exp (* funct, dict *)
     | Fold of exp * exp (* funct, dict *)
-    | Filter of ide list * exp (* key_list, dict *)
+    | Filter of ide list * exp (* keyList, dict *)
 ;;
 
 (* Ambiente *)
@@ -43,6 +39,7 @@ let bind (ambiente : 't env) (identificatore : ide) (valore : 't) =
 type evT =
       Int of int
     | Bool of bool
+    | String of string
     | FunVal of evFun
     | RecFunVal of ide * evFun
     | Unbound
@@ -59,6 +56,9 @@ let typecheck (tipo : string) (valore : evT) : bool = match tipo with
     | "bool" -> (match valore with
         Bool(_) -> true
         | _     -> false)
+    | "string" -> (match valore with
+        String(_) -> true
+        | _       -> false)
     | "dict" -> (match valore with
 		DictValue(_) -> true
 		| _          -> false)
@@ -182,6 +182,8 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
             @fail: se <key> è già presente in una qualche coppia all'interno di <initList>
             @return: una lista di coppie (<key>, <value>) valide
         *)
+
+
         let rec evaluateList (initList : (ide * exp) list) (ambiente : evT env) : (ide * evT) list =
             match initList with
         
@@ -191,9 +193,10 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
                     le coppie con chiave <key> e come valore la valutazione di <value> nell'ambiente attuale, 
                     fino ad esaurire le coppie in initList *)
                 | (key, value)::tail -> 
-					(* checkInitList key initList e controllo se len == 1 ? *)
-                    (key, eval value ambiente)::(evaluateList tail ambiente)
-                    (* ^ qui va fatto il controllo *)
+                    if (String.length key) = 0 then failwith("<key> è una stringa vuota")
+					else
+                        (key, eval value ambiente)::(evaluateList tail ambiente)
+                        (* ^ qui va fatto il controllo *)
         
         (* ritorno un DictValue, che appartiene ai tipi esprimibili *)
         in DictValue(evaluateList initList ambiente)
@@ -212,16 +215,18 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
     *)
     | Insert(key, value, dict) -> (match eval dict ambiente with
         DictValue evaluatedDict ->
-            let rec insert (key : ide) (value : evT) (dict : (ide * evT) list) : (ide * evT) list =
-                (match dict with
-                    | [] -> (key, value)::[] (* dizionario vuoto/chiave non presente -> inserisco la coppia *)
-                    | (k, v)::tail ->
-                        (* se ho trovato una chiave uguale, non inserisco la coppia *)
-                        if (key = k) then failwith("<key> duplicata, non posso inserire la coppia") (*(k, v)::tail*)
-                        (* altrimenti itero sul dizionario per cercare un'eventuale chiave già esistente,
-                            inserendo, nel caso, la nuova coppia in fondo *)
-                        else (k, v)::(insert key value tail))
-            in DictValue(insert key (eval value ambiente) evaluatedDict)
+            if (String.length key) = 0 then failwith("<key> è una stringa vuota")
+            else
+                let rec insert (key : ide) (value : evT) (dict : (ide * evT) list) : (ide * evT) list =
+                    (match dict with
+                        | [] -> (key, value)::[] (* dizionario vuoto/chiave non presente -> inserisco la coppia *)
+                        | (k, v)::tail ->
+                            (* se ho trovato una chiave uguale, non inserisco la coppia *)
+                            if (key = k) then failwith("<key> duplicata, non posso inserire la coppia") (*(k, v)::tail*)
+                            (* altrimenti itero sul dizionario per cercare un'eventuale chiave già esistente,
+                                inserendo, nel caso, la nuova coppia in fondo *)
+                            else (k, v)::(insert key value tail))
+                in DictValue(insert key (eval value ambiente) evaluatedDict)
         | _ -> failwith("<dict> non è un dizionario"))
     
     (*
@@ -235,13 +240,15 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
     *)
     | Delete(key, dict) -> (match eval dict ambiente with
         DictValue evaluatedDict ->
-            let rec delete (key : ide) (dict : (ide * evT) list) : (ide * evT) list =
-                match dict with
-                    | [] -> [] (* dizionario vuoto/chiave non trovata *)
-                    | (k, v)::tail -> 
-                        if (key = k) then tail (* se ho trovato la chiave, rimuovo la coppia *)
-                        else (k, v)::(delete key tail) (* altrimenti continuo ad iterare *)
-            in DictValue(delete key evaluatedDict)
+            if (String.length key) = 0 then failwith("<key> è una stringa vuota")
+            else
+                let rec delete (key : ide) (dict : (ide * evT) list) : (ide * evT) list =
+                    match dict with
+                        | [] -> [] (* dizionario vuoto/chiave non trovata *)
+                        | (k, v)::tail -> 
+                            if (key = k) then tail (* se ho trovato la chiave, rimuovo la coppia *)
+                            else (k, v)::(delete key tail) (* altrimenti continuo ad iterare *)
+                in DictValue(delete key evaluatedDict)
         | _ -> failwith("<dict> non è un dizionario"))
 
     (* 
@@ -254,13 +261,15 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
     *)
     | HasKey(key, dict) -> (match eval dict ambiente with
         DictValue evaluatedDict ->
-            let rec contains (key : ide) (dict : (ide * evT) list) : bool =
-                match dict with
-                    | [] -> false (* dizionario vuoto/chiave non presente, ritorno false *)
-                    | (k, _)::tail -> 
-                        if (key = k) then true (* chiave trovata, ritorno true *)
-                        else contains key tail (* continuo a cercare *)
-            in Bool(contains key evaluatedDict)
+            if (String.length key) = 0 then failwith("<key> è una stringa vuota")
+            else
+                let rec contains (key : ide) (dict : (ide * evT) list) : bool =
+                    match dict with
+                        | [] -> false (* dizionario vuoto/chiave non presente, ritorno false *)
+                        | (k, _)::tail -> 
+                            if (key = k) then true (* chiave trovata, ritorno true *)
+                            else contains key tail (* continuo a cercare *)
+                in Bool(contains key evaluatedDict)
         | _ -> failwith("<dict> non è un dizionario"))
 	
 	(*
@@ -295,9 +304,10 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
 			let rec fold (f : exp) (dict : (ide * exp) list) (acc : evT) (ambiente : evT env) : evT =
 				match dict with
 					| [] -> acc
-					| (_, v1)::tail -> match acc, (eval (FunCall(f, v1)) ambiente) with
-									| (Int(u), Int(v)) -> fold f tail (Int(u+v)) ambiente
-									| _ -> failwith("Errore durante l'applicazione della funzione")
+					| (_, v1)::tail -> 
+                        match acc, (eval (FunCall(f, v1)) ambiente) with
+                            | (Int(u), Int(v)) -> fold f tail (Int(u+v)) ambiente
+                            | _ -> failwith("Errore durante l'applicazione della funzione <funct>, tipo incompatibile?")
 				in fold funct evaluatedDict (Int(0)) ambiente
         | _ -> failwith("<dict> non è un dizionario"))
 	
@@ -307,19 +317,22 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
 		@params:
 			<ketList> : lista di chiavi da mantenere nel nuovo dizionario
 			<dict>    : dizionario da filtrare
+        @fail: se <keyList> è una lista vuota
         @fail: se <dict> non è un dizionario di tipo DictValue
 		@return: un nuovo dizionario di tipo DictValue, 
 			contenente solo le coppie la cui chiave appartiene a <keyList>
 	*)
-    | Filter(keylist, dict) -> (match eval dict ambiente with
+    | Filter(keyList, dict) -> (match eval dict ambiente with
       	DictValue evaluatedDict ->
-			let rec filter (l : ide list) (dict : (ide * evT) list) : (ide * evT) list =
-				match dict with
-					| [] -> []
-					| (k, v)::tail -> 
-						if (List.mem k l) then (k, v)::(filter l tail) 
-						else filter l tail
-			in DictValue(filter keylist evaluatedDict)
+            if (List.length keyList) = 0 then failwith("<keyList> è una lista vuota")
+            else
+                let rec filter (l : ide list) (dict : (ide * evT) list) : (ide * evT) list =
+                    match dict with
+                        | [] -> []
+                        | (k, v)::tail -> 
+                            if (List.mem k l) then (k, v)::(filter l tail) 
+                            else filter l tail
+                in DictValue(filter keyList evaluatedDict)
         | _ -> failwith("<dict> non è un dizionario"))
 
 ;;
@@ -340,12 +353,13 @@ let myDict = Dict([
 eval myDict myEnv;;
 (* DictValue[("mele", Int 430); ... ;("pere", Int 217)] *)
 
-let myDictWrong = Dict([
-    ("mele", Eint(12));
-    ("mele", Eint(13))
-]);;
-eval myDictWrong myEnv;;
+(* Costruttore, chiave non unica *)
+eval (Dict([("mele",Eint(30));("mele",Eint(40))])) myEnv;;
 (* duplicated key error *)
+
+(* Costrutture, chiave vuota *)
+eval (Dict([("",Eint(30));("mele",Eint(40))])) myEnv;;
+(* Exception: Failure "<key> è una stringa vuota" *)
 
 (* Insert, chiave non esistente *)
 eval (Insert("kiwi", Eint(300), myDict)) myEnv;; 
@@ -355,6 +369,10 @@ eval (Insert("kiwi", Eint(300), myDict)) myEnv;;
 eval (Insert("mele", Eint(550), myDict)) myEnv;; 
 (* Exception: Failure "<key> duplicata, non posso inserire la coppia" *)
 
+(* Insert, chiave vuota *)
+eval (Insert("", Eint(720), myDict)) myEnv;;
+(* Exception: Failure "<key> è una stringa vuota" *)
+
 (* Delete, chiave esistente *)
 eval (Delete("banane", myDict)) myEnv;;
 (* DictValue [("mele", Int 430); ("arance", Int 525); ("pere", Int 217)] *)
@@ -363,6 +381,10 @@ eval (Delete("banane", myDict)) myEnv;;
 eval (Delete("pesche", myDict)) myEnv;;
 (* DictValue [("mele", Int 430); ("banane", Int 312); ("arance", Int 525); ("pere", Int 217)]) *)
 
+(* Delete, chiave vuota *)
+eval (Delete("", myDict)) myEnv;;
+(* Exception: Failure "<key> è una stringa vuota" *)
+
 (* HasKey, chiave esistente *)
 eval (HasKey("arance", myDict)) myEnv;;
 (* Bool true *)
@@ -370,6 +392,10 @@ eval (HasKey("arance", myDict)) myEnv;;
 (* HasKey, chiave non esistente *)
 eval (HasKey("kiwi", myDict)) myEnv;;
 (* Bool false *)
+
+(* HasKey, chiave vuota *)
+eval (HasKey("", myDict)) myEnv;;
+(* Exception: Failure "<key> è una stringa vuota" *)
 
 (* Iterate, funzione incremento (+1) *)
 eval (Iterate(Fun("y", Sum(Den "y", Eint 1)), myDict)) myEnv;;
@@ -396,9 +422,13 @@ eval (Filter(["mele"; "pere"], myDict)) myEnv;;
 (* DictValue [("mele", Int 430); ("pere", Int 217)] *)
 
 (* Filter, con una chiave inesistente *)
-eval (Filter(["mele";"pesche"],myDict)) myEnv;;
+eval (Filter(["mele";"pesche"], myDict)) myEnv;;
 (* DictValue [("mele", Int 430)] *)
 
 (* Filter, con tutte le chiavi inesistenti *)
-eval (Filter(["kiwi";"pesche"],myDict)) myEnv;;
+eval (Filter(["kiwi";"pesche"], myDict)) myEnv;;
 (* DictValue [] *)
+
+(* Filter, con una lista vuota *)
+eval (Filter([], myDict)) myEnv;;
+(* Exception: Failure "<keyList> è una lista vuota" *)
