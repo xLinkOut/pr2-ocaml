@@ -1,4 +1,7 @@
 # Files
+*.cmi
+*.cmo
+*.out
 .DS_Store
 
 # Directories
