@@ -190,8 +190,9 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
                 (* se la lista iniziale non è vuota, compongo il dizionario ricorsivamenete aggiungengo
                     le coppie con chiave <key> e come valore la valutazione di <value> nell'ambiente attuale, 
                     fino ad esaurire le coppie in initList *)
-                | (key, value)::listaRimanente -> 
-                    (key, eval value ambiente)::(evaluateList listaRimanente ambiente)
+                | (key, value)::tail -> 
+					(* checkInitList key initList e controllo se len == 1 ? *)
+                    (key, eval value ambiente)::(evaluateList tail ambiente)
                     (* ^ qui va fatto il controllo *)
         
         (* ritorno un DictValue, che appartiene ai tipi esprimibili *)
@@ -226,7 +227,7 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
     (*
         Elimina dal dizionario la coppia che ha come chiave <key>, se presente.
         @params:
-            <key>  : chiave da cercare nel dizionare ed eventualmente eliminare
+            <key>  : chiave da cercare nel dizionario ed eventualmente eliminare
             <dict> : dizionario da cui eliminare la coppia con chiave <key>
         @fail: se <dict> non è un dizionario di tipo DictValue
         @return : un nuovo dizionario di tipo DictValue senza la coppia con chiave <key>, 
@@ -326,11 +327,10 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
 (* == DICT TESTS == *)
 
 (* Creo un ambiente inizialmente vuoto *)
-Printf.printf "Creo un ambiente inizialmente vuoto\n";;
-let myEnv = emptyenv Unbound;; (* val env0 : '_weakX -> evT = <fun> *)
+let myEnv = emptyenv Unbound;; 
+(* val env0 : '_weakX -> evT = <fun> *)
 
 (* Creo un nuovo dizionario inizializzandolo con alcuni elementi *)
-Printf.printf "Creo un nuovo dizionario inizializzandolo con alcuni elementi\n";;
 let myDict = Dict([
     ("mele",   Eint(430));
     ("banane", Eint(312));
