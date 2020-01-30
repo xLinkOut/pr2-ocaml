@@ -62,30 +62,30 @@ let typecheck (tipo : string) (valore : evT) : bool = match tipo with
     | "dict" -> (match valore with
 		DictValue(_) -> true
 		| _          -> false)
-	| _ -> failwith("Non e' un tipo valido")
+	| _ -> failwith("Non è un tipo valido")
 ;;
 
 
 (* Funzioni primitive *)
-let sum x y  = if (typecheck "int" x) && (typecheck "int" y)
+let sum x y  = if (typecheck "int"  x) && (typecheck "int" y)
     then (match (x,y) with
           (Int(n), Int(u)) -> Int(n + u)
         | _ -> failwith("Errore durante l'applicazione della funzione"))
     else failwith("Errore di tipo");;
 
-let diff x y = if (typecheck "int" x) && (typecheck "int" y)
+let diff x y = if (typecheck "int"  x) && (typecheck "int" y)
     then (match (x,y) with
           (Int(n), Int(u)) -> Int(n - u)
         | _ -> failwith("Errore durante l'applicazione della funzione"))
     else failwith("Errore di tipo");;
 
-let prod x y = if (typecheck "int" x) && (typecheck "int" y)
+let prod x y = if (typecheck "int"  x) && (typecheck "int" y)
     then (match (x,y) with
           (Int(n), Int(u)) -> Int(n * u)
         | _ -> failwith("Errore durante l'applicazione della funzione"))
     else failwith("Errore di tipo");;
 
-let eq x y   = if (typecheck "int" x) && (typecheck "int" y)
+let eq x y   = if (typecheck "int"  x) && (typecheck "int" y)
     then (match (x,y) with
           (Int(n), Int(u)) -> Bool(n = u)
         | _ -> failwith("Errore durante l'applicazione della funzione"))
@@ -121,6 +121,51 @@ let non x    = if (typecheck "bool" x)
         | Bool(false) -> Bool(true)
         | _ -> failwith("Errore di tipo"))
     else failwith("Errore di tipo");;
+
+
+
+(*
+    Funzione ausiliaria che permette, data una coppia chiave-valore, 
+    di estrarre la relativa chiave.
+    @params:
+        <pair> : coppia (<key>, <value>)
+    @return: la chiave <key> della coppia <pair>
+*)
+let getKey (key,value) = key;;
+
+(*
+    Funzione che permette di filtrare la lista con cui un dizionario viene inizializzato,
+    rimuovendo le coppie che hanno la stessa chiave e mantenendo solo la prima occorrenza.
+    E' possibile scegliere di utilizzare <filterInitList> piuttosto che <validateInitList>,
+    in base al comportamento che si desidera implementare.
+    @params:
+        <list> : lista di inizializzazione, corrisponde a <initList> del costruttore Dict
+    @return: una nuova lista filtrata, dove ogni chiave è unica
+*)
+(* -- commentata, si sceglie di utilizzare <validateInitList> )
+let filterInitList (list : (ide * exp) list) : (ide * exp) list =
+    let seen = Hashtbl.create (List.length list) in
+        List.filter ( fun pair -> let exists = not (Hashtbl.mem seen (getKey pair)) in
+            Hashtbl.replace seen (getKey pair) (); exists) list
+;;
+*)
+
+(*
+    Funzione che permette di validare la lista con cui un dizionario viene inizializzato,
+    interrompendo l'esecuzione nel caso vengano trovate almeno 2 coppie con la stessa chiave.
+    E' possibile scegliere di utilizzare <validateInitList> piuttosto che <filterInitList>,
+    in base al comportamento che si desidera implementare.
+    @params:
+        <list> : lista di inizializzazione, corrisponde a <initList> del costruttore Dict
+    @throws: se ci sono due <key> uguali all'interno di <list>
+    @return: una nuova lista, uguale alla prima, dove ogni chiave è unica
+*)
+let validateInitList (list : (ide * exp) list) : (ide * exp) list =
+    let seen = Hashtbl.create (List.length list) in
+        List.filter ( fun pair -> let exists = Hashtbl.mem seen (getKey pair) in
+            if exists then failwith("<key> duplicata all'interno di <initList>") 
+            else Hashtbl.replace seen (getKey pair) (); (not exists)) list
+;;
 
 (* Interprete del linguaggio *)
 let rec eval (e : exp) (ambiente : evT env) : evT = match e with
@@ -166,7 +211,11 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
         Accetta come parametro una lista (eventualmente vuota) di coppie
         con le quali inizializzare il dizionario, altrimenti ne crea uno vuoto.
         Le coppie saranno controllate per mantenere la proprietà di unicità delle 
-        chiavi all'interno del dizionario.
+        chiavi all'interno del dizionario. Il modo con cui le coppie verranno controllate
+        può essere cambiando utilizzando una diversa funzione di controllo, scegliendo
+        tra <filterInitList>, che ritorna una nuova lista filtrata senza doppioni, oppure
+        <validateInitList> che invece blocca l'esecuzione se la lista contiene almeno
+        una chiave doppia.
         @params:
             <initList> : lista di coppie (<key>, <value>) (può anche essere vuota)
         @fail: se <key> è già presente in una qualche coppia all'interno di <initList>
@@ -183,7 +232,6 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
             @return: una lista di coppie (<key>, <value>) valide
         *)
 
-
         let rec evaluateList (initList : (ide * exp) list) (ambiente : evT env) : (ide * evT) list =
             match initList with
         
@@ -196,10 +244,9 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
                     if (String.length key) = 0 then failwith("<key> è una stringa vuota")
 					else
                         (key, eval value ambiente)::(evaluateList tail ambiente)
-                        (* ^ qui va fatto il controllo *)
         
         (* ritorno un DictValue, che appartiene ai tipi esprimibili *)
-        in DictValue(evaluateList initList ambiente)
+        in DictValue(evaluateList (validateInitList initList) ambiente)
     
 	(*
         Inserisce nel dizionario una coppia (<key>, <value>), 
@@ -337,7 +384,7 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
 
 ;;
 
-(* == DICT TESTS == *)
+(* == TESTS == *)
 
 (* Creo un ambiente inizialmente vuoto *)
 let myEnv = emptyenv Unbound;; 
@@ -355,7 +402,7 @@ eval myDict myEnv;;
 
 (* Costruttore, chiave non unica *)
 eval (Dict([("mele",Eint(30));("mele",Eint(40))])) myEnv;;
-(* duplicated key error *)
+(* Exception: Failure "<key> duplicata all'interno di <initList>" *)
 
 (* Costrutture, chiave vuota *)
 eval (Dict([("",Eint(30));("mele",Eint(40))])) myEnv;;
