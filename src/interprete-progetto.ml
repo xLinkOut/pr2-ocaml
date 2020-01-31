@@ -122,49 +122,40 @@ let non x    = if (typecheck "bool" x)
         | _ -> failwith("Errore di tipo"))
     else failwith("Errore di tipo");;
 
-
-
 (*
-    Funzione ausiliaria che permette, data una coppia chiave-valore, 
-    di estrarre la relativa chiave.
+    Funzione ausiliaria che permette di verificare se una coppia con una certa chiave
+    fa parte di una lista. Si potrebbe lanciare una <failwith> quando viene trovata
+    una chiave uguale, cambiando così il comportamento dell'interprete in modo da non 
+    accettare una lista di inizializzazione con chiavi duplicate piuttosto che filtrare i
+    duplicati e processare comunque la lista.
     @params:
-        <pair> : coppia (<key>, <value>)
-    @return: la chiave <key> della coppia <pair>
+        <key> : chiave da cercare nella lista
+    @return: true se trovo una chiave uguale, false altrimenti
 *)
-let getKey (key,value) = key;;
-
-(*
-    Funzione che permette di filtrare la lista con cui un dizionario viene inizializzato,
-    rimuovendo le coppie che hanno la stessa chiave e mantenendo solo la prima occorrenza.
-    E' possibile scegliere di utilizzare <filterInitList> piuttosto che <validateInitList>,
-    in base al comportamento che si desidera implementare.
-    @params:
-        <list> : lista di inizializzazione, corrisponde a <initList> del costruttore Dict
-    @return: una nuova lista filtrata, dove ogni chiave è unica
-*)
-(* -- commentata, si sceglie di utilizzare <validateInitList> )
-let filterInitList (list : (ide * exp) list) : (ide * exp) list =
-    let seen = Hashtbl.create (List.length list) in
-        List.filter ( fun pair -> let exists = not (Hashtbl.mem seen (getKey pair)) in
-            Hashtbl.replace seen (getKey pair) (); exists) list
+let rec is_member key = function
+  | [] -> false
+  | (k, _)::tail ->
+    if k = key then true (* qui si potrebbe lanciare una failwith *)
+    else is_member key tail
 ;;
-*)
 
 (*
-    Funzione che permette di validare la lista con cui un dizionario viene inizializzato,
-    interrompendo l'esecuzione nel caso vengano trovate almeno 2 coppie con la stessa chiave.
-    E' possibile scegliere di utilizzare <validateInitList> piuttosto che <filterInitList>,
-    in base al comportamento che si desidera implementare.
+    Funzione ausiliaria del costruttore che permette di validare
+    la lista con cui un dizionario viene inizializzato, in modo
+    da filtrare le eventuali coppie che hanno la stessa chiave.
     @params:
-        <list> : lista di inizializzazione, corrisponde a <initList> del costruttore Dict
-    @throws: se ci sono due <key> uguali all'interno di <list>
-    @return: una nuova lista, uguale alla prima, dove ogni chiave è unica
+        <list> : lista di coppie, corrispondente a <initList>
+    @return: una nuova lista filtrata, senza chiavi duplicate, se presenti
 *)
-let validateInitList (list : (ide * exp) list) : (ide * exp) list =
-    let seen = Hashtbl.create (List.length list) in
-        List.filter ( fun pair -> let exists = Hashtbl.mem seen (getKey pair) in
-            if exists then failwith("<key> duplicata all'interno di <initList>") 
-            else Hashtbl.replace seen (getKey pair) (); (not exists)) list
+let validateList list =
+  let rec aux acc = function
+    | [] -> List.rev acc (* inverte la lista che, a questo punto, è al contrario *)
+    | ((k, v) as hd)::tl ->
+      (* se la chiave attuale fa parte della nuova lista, è un duplicato, quindi non la aggiungo *)
+      if is_member k acc then aux acc tl 
+      (* altrimenti continuo ad iterare *)
+      else aux (hd::acc) tl
+  in aux [] list
 ;;
 
 (* Interprete del linguaggio *)
@@ -246,7 +237,7 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
                         (key, eval value ambiente)::(evaluateList tail ambiente)
         
         (* ritorno un DictValue, che appartiene ai tipi esprimibili *)
-        in DictValue(evaluateList (validateInitList initList) ambiente)
+        in DictValue(evaluateList (validateList initList) ambiente)
     
 	(*
         Inserisce nel dizionario una coppia (<key>, <value>), 
