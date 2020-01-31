@@ -247,7 +247,7 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
     *)
     | Insert(key, value, dict) -> (match eval dict ambiente with
         DictValue evaluatedDict ->
-            if key = "" then raise (Failure "<key> è una stringa vuota") (*failwith("<key> è una stringa vuota")*)
+            if key = "" then failwith("<key> è una stringa vuota")
             else
                 let rec insert (key : ide) (value : evT) (dict : (ide * evT) list) : (ide * evT) list =
                     (match dict with
