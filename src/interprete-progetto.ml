@@ -181,8 +181,9 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
         let fClosure = (eval f ambiente) in
         (match fClosure with
             | FunVal(arg, fBody, fDecEnv) -> eval fBody (bind fDecEnv arg (eval eArg ambiente))
-            (* in order to obtain static scope the function has to be evaluated with its declaration environment 'fDecEnv';
-            to obtain dynamic scope the function has to be evaluated with the current environment 'ambiente' *)
+            (* Per ottenere un linguaggio che funzioni con scoping statico, la funzione deve essere valutata nel suo
+                ambiente di dichiarazione "fDecEnv". Altrimenti, se si volesse utilizzare uno scoping dinamico, 
+                bisognerebbe valutare la funzione nell'ambiente corrente "ambiente". *)
             | RecFunVal(g, (arg, fBody, fDecEnv)) ->
                 let aVal = (eval eArg ambiente) in
                 let rEnv = (bind fDecEnv g fClosure) in
