@@ -1,0 +1,121 @@
+\documentclass[10pt, italian, openany]{book}
+
+% Set page margins
+\usepackage[top=100pt,bottom=100pt,left=68pt,right=66pt]{geometry}
+
+\usepackage[]{graphicx}
+% If multiple images are to be added, a folder (path) with all the images can be added here 
+\graphicspath{ {images/} }
+
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=blue,
+}
+ 
+% All page numbers positioned at the bottom of the page
+\usepackage{fancyhdr}
+\fancyhf{} % clear all header and footers
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0pt} % remove the header rule
+\pagestyle{fancy}
+
+% Changes the style of chapter headings
+\usepackage{titlesec}
+
+\titleformat{\chapter}
+   {\normalfont\LARGE\bfseries}{\thechapter.}{1em}{}
+
+% Change distance between chapter header and text
+\titlespacing{\chapter}{0pt}{50pt}{2\baselineskip}
+\usepackage{titlesec}
+\titleformat{\section}
+  [hang] % <shape>
+  {\normalfont\bfseries\Large} % <format>
+  {} % <label>
+  {0pt} % <sep>
+  {} % <before code>
+\renewcommand{\thesection}{} % Remove section references...
+\renewcommand{\thesubsection}{\arabic{subsection}} %... from subsections
+
+% Numbered subsections
+\setcounter{secnumdepth}{3}
+
+% Prevents LaTeX from filling out a page to the bottom
+\raggedbottom
+
+\usepackage{listings}
+\usepackage{color}
+% Code Listings
+\definecolor{vgreen}{RGB}{104,180,104}
+\definecolor{vblue}{RGB}{49,49,255}
+\definecolor{vorange}{RGB}{255,143,102}
+\definecolor{vlightgrey}{RGB}{245,245,245}
+\lstdefinestyle{bash} {
+	language=bash,
+	basicstyle=\ttfamily,
+	keywordstyle=\color{vblue},
+	identifierstyle=\color{black},
+	commentstyle=\color{vgreen},
+	tabsize=4,
+	backgroundcolor = \color{vlightgrey},
+	literate=*{:}{:}1
+}
+
+\begin{document}
+
+\begin{titlepage}
+	\clearpage\thispagestyle{empty}
+	\centering
+	\vspace{1cm}
+
+    \includegraphics[scale=0.60]{unipi-logo.png}
+    
+	{\normalsize \noindent Dipartimento di Informatica \\
+	             Corso di Laurea in Informatica \par}
+	
+	\vspace{2cm}
+	{\Huge \textbf{Relazione progetto OCaml} \par}
+	\vspace{1cm}
+	{\large Programmazione II}
+	\vspace{5cm}
+
+    \begin{minipage}[t]{0.47\textwidth}
+    	{\large{ Prof. Gianluigi Ferrari\\ Prof.ssa Francesca Levi}}
+    \end{minipage}\hfill\begin{minipage}[t]{0.47\textwidth}\raggedleft
+    	{\large {Mario Rossi \\ 123456 - Corso A\\ }}
+    \end{minipage}
+
+    \vspace{4cm}
+
+	{\normalsize Anno Accademico 2019/2020 \par}
+
+	\pagebreak
+
+\end{titlepage}
+
+\section{Dettagli sul metodo di sviluppo}
+Il progetto è stato sviluppato utilizzando \textit{Visual Studio Code} come editor di supporto e con gli strumenti messi a disposizione dal pacchetto standard di \textit{OCaml} per la compilazione e l'esecuzione del codice, nonchè l'interprete interattivo per provare sul momento alcune istruzioni. L'esecuzione è possibile compilando il sorgente ed eseguendo il relativo file eseguibile, oppure utilizzando l'interprete interattivo per, appunto, interagire con l'ambiente e con le funzioni messe a disposizione dal linguaggio. Ad esempio:
+
+\begin{lstlisting}[style=bash]
+cd PR2-OCaml/src
+ocamlc interprete-progetto.ml -o interprete
+./interprete
+\end{lstlisting}
+
+\section{Dettagli implementativi}
+Il progetto richiede l'estensione del linguaggio funzionale didattico discusso a lezione per permettere di utilizzare i \textbf{dizionari}. Un dizionario è una collezione di coppie (chiave,valore) identificate \textbf{univocamente} dalla propria chiave, che è quindi unica all'interno del dizionario. Nel codice è presente la specifica del costruttore e di ogni funzione che opera con i dizionari, illustrando i relativi parametri, eventuali eccezioni e valori di ritorno. I valori delle coppie in un dizionario generalmente possono essere di tipi diversi, a differenza di una lista; si è scelto di mantenere questa proprietà anche in questa particolare interpretazione.
+Per quanto riguarda le chiavi, ognuna di esse deve essere unica all'interno del dizionario, ovvero deve essere associata ad un solo valore. Non può inoltre essere rappresentata da una stringa vuota, che è quindi una chiave invalida.
+
+\subsection{Costruttore, Insert, Delete e HasKey}
+Al momento della \textbf{creazione} di un nuovo dizionario è possibile passare come argomento una lista di valori con cui inizializzarlo, eventualmente anche vuota. Nel caso questa lista non sia vuota, verrà prima validata, ovvero verranno controllate tutte le coppie al suo interno per mantenere la proprietà di unicità delle chiavi. Si è scelto di non far fallire l'operazione di validazione nel caso venga trovata una chiave duplicata, piuttosto la lista viene filtrata e viene mantenuta l'ultima occorrenza del valore associato a quella specifica chiave. Tuttavia, risulta molto semplice cambiare questo comportamento con una modifica minima e per niente invasiva all'interno del codice.  Lo stesso controllo sulle chiavi viene effettuato nel metodo \textbf{Insert}, per non inserire una chiave duplicata all'interno del dizionario. Qui viene però lanciato un errore. Il metodo \textbf{Delete} invece ritorna lo stesso dizionario di partenza se la chiave da eliminare non è presente nel dizionario. \textbf{HasKey} è una funzione booleana, controlla se una certa chiave esiste in un certo dizionario. Tutti i metodi sopracitati controllano che la chiave non sia una stringa vuota.
+
+\subsection{Iterate e Fold}
+Il metodo \textbf{Iterate} applica una funzione \textit{f} a tutte le coppie contenuto in un dizionario, restituendo un nuovo dizionario aggiornato. Avendo scelto di permettere valori di tipi diversi all'interno del dizionario, è compito di chi scrive la funzione accertarsi che essa possa lavorare con valori di tipo diverso; in caso di incompatibilità, viene lanciato un errore. Lo stesso succede per il metodo \textbf{Fold}, che applica \textit{sequenzialmente} una funzione \textit{f} alle coppie del dizionario per restituire un risultato unico.
+
+\subsection{Filter}
+Il metodo \textbf{Filter}, infine, elimina le coppie da un dizionario la cui chiave non appartiene ad una certa lista, passatagli per argomento. Nel caso in cui la lista sia vuota, viene restituito un dizionario vuoto.
+
+\end{document}
