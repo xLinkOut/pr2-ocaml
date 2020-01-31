@@ -65,7 +65,6 @@ let typecheck (tipo : string) (valore : evT) : bool = match tipo with
 	| _ -> failwith("Non è un tipo valido")
 ;;
 
-
 (* Funzioni primitive *)
 let sum x y  = if (typecheck "int"  x) && (typecheck "int" y)
     then (match (x,y) with
@@ -123,39 +122,38 @@ let non x    = if (typecheck "bool" x)
     else failwith("Errore di tipo");;
 
 (*
-    Funzione ausiliaria che permette di verificare se una coppia con una certa chiave
-    fa parte di una lista. Si potrebbe lanciare una <failwith> quando viene trovata
-    una chiave uguale, cambiando così il comportamento dell'interprete in modo da non 
-    accettare una lista di inizializzazione con chiavi duplicate piuttosto che filtrare i
-    duplicati e processare comunque la lista.
-    @params:
-        <key> : chiave da cercare nella lista
-    @return: true se trovo una chiave uguale, false altrimenti
+    Funzione ausiliaria per la funzione <validate>, controlla se una 
+    specifica chiave è già presente nella lista di coppie che andranno 
+    inserite nel dizionario, in modo da evitare chiavi duplicate.
+    @params: 
+        <key>  : chiave da cercare
+        <list> : lista in cui cercare la chiave
+   @return: true se la chiave viene trovata, false altrimenti 
 *)
-let rec is_member key = function
-  | [] -> false
-  | (k, _)::tail ->
-    if k = key then true (* qui si potrebbe lanciare una failwith *)
-    else is_member key tail
+let rec find key list = match list with
+    | [] -> false
+    | (k, _)::tail -> k = key || find key tail
 ;;
 
 (*
-    Funzione ausiliaria del costruttore che permette di validare
-    la lista con cui un dizionario viene inizializzato, in modo
-    da filtrare le eventuali coppie che hanno la stessa chiave.
+    Funzione che permette di validare la lista di inizializzazione
+    di un dizionario, in modo da rimuovere eventuali coppie con la 
+    stessa chiave.
+    Si è scelto di filtrare la lista piuttosto che lanciare un errore
+    nel caso un cui venga trovata una chiave duplicata, per permettere
+    comunque la creazione del dizionario inserendo soltanto l'ultima occorrenza
+    della coppia con quella specifica chiave; tuttavia, è necessaria
+    la modifica di una sola riga di codice per cambiare questo comportamento.
     @params:
-        <list> : lista di coppie, corrispondente a <initList>
-    @return: una nuova lista filtrata, senza chiavi duplicate, se presenti
+        <list> : lista da validare, corrisponde a <initList>
+    @return: una nuova lista filtrata, senza le eventuali coppie
+        con la stessa chiave, mantenendo solo l'ultima occorrenza.
 *)
-let validateList list =
-  let rec aux acc = function
-    | [] -> List.rev acc (* inverte la lista che, a questo punto, è al contrario *)
-    | ((k, v) as hd)::tl ->
-      (* se la chiave attuale fa parte della nuova lista, è un duplicato, quindi non la aggiungo *)
-      if is_member k acc then aux acc tl 
-      (* altrimenti continuo ad iterare *)
-      else aux (hd::acc) tl
-  in aux [] list
+let rec validate list = match list with
+    | [] -> []
+    | (k, v)::tail -> match find k tail with
+        | true  -> tail (* failwith("<key> duplicata nella lista di inizializzazione") *)
+        | false -> (k,v)::(validate tail)
 ;;
 
 (* Interprete del linguaggio *)
@@ -225,19 +223,14 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
 
         let rec evaluateList (initList : (ide * exp) list) (ambiente : evT env) : (ide * evT) list =
             match initList with
-        
-                | [] -> [] (* se la lista è vuota, inizializzo un dizionario vuoto *)
-                
+                | [] -> [] (* se la lista è vuota, inizializzo un dizionario vuoto *)    
                 (* se la lista iniziale non è vuota, compongo il dizionario ricorsivamenete aggiungengo
                     le coppie con chiave <key> e come valore la valutazione di <value> nell'ambiente attuale, 
                     fino ad esaurire le coppie in initList *)
                 | (key, value)::tail -> 
                     if (String.length key) = 0 then failwith("<key> è una stringa vuota")
-					else
-                        (key, eval value ambiente)::(evaluateList tail ambiente)
-        
-        (* ritorno un DictValue, che appartiene ai tipi esprimibili *)
-        in DictValue(evaluateList (validateList initList) ambiente)
+					else (key, eval value ambiente)::(evaluateList tail ambiente)
+        in DictValue(evaluateList (validate initList) ambiente)
     
 	(*
         Inserisce nel dizionario una coppia (<key>, <value>), 
@@ -377,11 +370,11 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
 
 (* == TESTS == *)
 
-(* Creo un ambiente inizialmente vuoto *)
+(* Creazione ambiente, inizialmente vuoto *)
 let myEnv = emptyenv Unbound;; 
 (* val env0 : '_weakX -> evT = <fun> *)
 
-(* Creo un nuovo dizionario inizializzandolo con alcuni elementi *)
+(* Costruttore, con lista di inizializzazione valida *)
 let myDict = Dict([
     ("mele",   Eint(430));
     ("banane", Eint(312));
@@ -393,7 +386,7 @@ eval myDict myEnv;;
 
 (* Costruttore, chiave non unica *)
 eval (Dict([("mele",Eint(30));("mele",Eint(40))])) myEnv;;
-(* Exception: Failure "<key> duplicata all'interno di <initList>" *)
+(* DictValue [("mele", Int 40)] *)
 
 (* Costrutture, chiave vuota *)
 eval (Dict([("",Eint(30));("mele",Eint(40))])) myEnv;;
