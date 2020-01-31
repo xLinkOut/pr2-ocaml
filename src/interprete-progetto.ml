@@ -50,17 +50,17 @@ and evFun = ide * exp * evT env;;
 
 (* Type checker dinamico *)
 let typecheck (tipo : string) (valore : evT) : bool = match tipo with
-    "int" -> (match valore with
-        Int(_) -> true
+    | "int"    -> (match valore with
+        | Int(_) -> true
         | _    -> false)
-    | "bool" -> (match valore with
-        Bool(_) -> true
+    | "bool"   -> (match valore with
+        | Bool(_) -> true
         | _     -> false)
     | "string" -> (match valore with
-        String(_) -> true
+        | String(_) -> true
         | _       -> false)
-    | "dict" -> (match valore with
-		DictValue(_) -> true
+    | "dict"   -> (match valore with
+		| DictValue(_) -> true
 		| _          -> false)
 	| _ -> failwith("Non è un tipo valido")
 ;;
@@ -103,13 +103,13 @@ let et x y   = if (typecheck "bool" x) && (typecheck "bool" y)
         | _ -> failwith("Errore durante l'applicazione della funzione"))
     else failwith("Errore di tipo");;
 
-let minus x  = if (typecheck "int" x)
+let minus x  = if (typecheck "int"  x)
     then (match x with
           Int(n) -> Int(-n)
         | _ -> failwith("Errore durante l'applicazione della funzione"))
     else failwith("Errore di tipo");;
 
-let iszero x = if (typecheck "int" x)
+let iszero x = if (typecheck "int"  x)
     then (match x with
           Int(n) -> Bool(n=0)
         | _ -> failwith("Errore durante l'applicazione della funzione"))
@@ -349,16 +349,13 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
 		@params:
 			<ketList> : lista di chiavi da mantenere nel nuovo dizionario
 			<dict>    : dizionario da filtrare
-        @fail: se <keyList> è una lista vuota
         @fail: se <dict> non è un dizionario di tipo DictValue
 		@return: un nuovo dizionario di tipo DictValue, 
 			contenente solo le coppie la cui chiave appartiene a <keyList>
 	*)
     | Filter(keyList, dict) -> (match eval dict ambiente with
       	DictValue evaluatedDict ->
-            if (List.length keyList) = 0 then failwith("<keyList> è una lista vuota")
-            else
-                let rec filter (l : ide list) (dict : (ide * evT) list) : (ide * evT) list =
+            let rec filter (l : ide list) (dict : (ide * evT) list) : (ide * evT) list =
                     match dict with
                         | [] -> []
                         | (k, v)::tail -> 
@@ -463,4 +460,4 @@ eval (Filter(["kiwi";"pesche"], myDict)) myEnv;;
 
 (* Filter, con una lista vuota *)
 eval (Filter([], myDict)) myEnv;;
-(* Exception: Failure "<keyList> è una lista vuota" *)
+(* DictValue [] *)
