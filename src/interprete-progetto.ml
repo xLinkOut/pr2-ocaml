@@ -229,7 +229,7 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
                     le coppie con chiave <key> e come valore la valutazione di <value> nell'ambiente attuale, 
                     fino ad esaurire le coppie in initList *)
                 | (key, value)::tail -> 
-                    if (String.length key) = 0 then failwith("<key> è una stringa vuota")
+                    if key = "" then failwith("<key> è una stringa vuota")
 					else (key, eval value ambiente)::(evaluateList tail ambiente)
         in DictValue(evaluateList (validate initList) ambiente)
     
@@ -247,7 +247,7 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
     *)
     | Insert(key, value, dict) -> (match eval dict ambiente with
         DictValue evaluatedDict ->
-            if (String.length key) = 0 then failwith("<key> è una stringa vuota")
+            if key = "" then raise (Failure "<key> è una stringa vuota") (*failwith("<key> è una stringa vuota")*)
             else
                 let rec insert (key : ide) (value : evT) (dict : (ide * evT) list) : (ide * evT) list =
                     (match dict with
@@ -272,7 +272,7 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
     *)
     | Delete(key, dict) -> (match eval dict ambiente with
         DictValue evaluatedDict ->
-            if (String.length key) = 0 then failwith("<key> è una stringa vuota")
+            if key = "" then failwith("<key> è una stringa vuota")
             else
                 let rec delete (key : ide) (dict : (ide * evT) list) : (ide * evT) list =
                     match dict with
@@ -293,7 +293,7 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
     *)
     | HasKey(key, dict) -> (match eval dict ambiente with
         DictValue evaluatedDict ->
-            if (String.length key) = 0 then failwith("<key> è una stringa vuota")
+            if key = "" then failwith("<key> è una stringa vuota")
             else
                 let rec contains (key : ide) (dict : (ide * evT) list) : bool =
                     match dict with
