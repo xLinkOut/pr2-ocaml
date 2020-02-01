@@ -3,6 +3,7 @@
 *.cmo
 *.out
 .DS_Store
+relazione/Relazione.pdf
 
 # Directories
 doc/
