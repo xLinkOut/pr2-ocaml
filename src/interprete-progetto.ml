@@ -1,7 +1,7 @@
 (* Grammatica del linguaggio *)
 type ide = string;;
 type exp =
-      Eint of int
+    | Eint of int
     | Ebool of bool
     | Den of ide
     | Prod of exp * exp
@@ -37,7 +37,7 @@ let bind (ambiente : 't env) (identificatore : ide) (valore : 't) =
 
 (* Valori esprimibili *)
 type evT =
-      Int of int
+    | Int of int
     | Bool of bool
     | String of string
     | FunVal of evFun
@@ -45,7 +45,6 @@ type evT =
     | Unbound
     (* Estensione dizionari *)
     | DictValue of (ide * evT) list
-
 and evFun = ide * exp * evT env;;
 
 (* Type checker dinamico *)
@@ -158,7 +157,7 @@ let rec validate list = match list with
 
 (* Interprete del linguaggio *)
 let rec eval (e : exp) (ambiente : evT env) : evT = match e with
-      Eint n -> Int n
+    | Eint n -> Int n
     | Ebool b -> Bool b
     | IsZero a -> iszero (eval a ambiente)
     | Den i -> applyenv ambiente i
@@ -194,6 +193,7 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
         (match funDef with
         | Fun(i, fBody) -> let r1 = (bind ambiente f (RecFunVal(f, (i, fBody, ambiente)))) in eval bodyOfLet r1
         | _ -> failwith("non functional def"))
+    
     (* Estensione dizionari *)
 
     (*

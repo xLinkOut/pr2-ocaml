@@ -1,13 +1,8 @@
 (* Type checker statico *)
-type 't env = (string * 't) list;;
-let rec lookup x y = match x with
-    | (i1,e1) :: x1 -> if y = i1 then e1 else lookup x1 y
-    | [] -> failwith("wrong env")
-;;
 
 type ide = string;;
 type exp =
-      Eint of int
+    | Eint of int
     | Ebool of bool
     | Den of ide
     | Ide of ide
@@ -36,9 +31,16 @@ type exp =
     | Filter of ide list * exp (* keyList, dict *)
 ;;
 
+(* Ambiente *)
+type 't env = (string * 't) list;;
+let rec lookup x y = match x with
+    | (i1,e1) :: x1 -> if y = i1 then e1 else lookup x1 y
+    | [] -> failwith("wrong env")
+;;
+
 (* Valori esprimibili *)
 type evT =
-      Int
+    | Int
     | Bool
     | String 
     | Unbound
@@ -54,16 +56,15 @@ let rec checker (e : exp) (env : evT env) : evT =
     | Eint i -> Int
     | Ebool b -> Bool
     | Den s -> String
-    | Dict l ->
-        (match l with
-            | [] -> DictValue
-            | _ -> 
-                let rec explore (list) =
-                    (match list with
-                        [] -> DictValue
-                        | (k,v)::tail -> explore tail
-                        | _ -> failwith("<list> non è una lista di coppie"))
-                in explore l)
+    | Dict l -> (match l with
+        | [] -> DictValue
+        | _ -> 
+            let rec explore (list) =
+                (match list with
+                    [] -> DictValue
+                    | (k,v)::tail -> explore tail
+                    | _ -> failwith("<list> non è una lista di coppie"))
+            in explore l)
     | Insert (k,v,d) -> 
         (match (k,v,d) with
             | (ide, exp, dict) -> DictValue
