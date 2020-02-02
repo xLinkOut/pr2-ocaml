@@ -4,6 +4,7 @@
 *.out
 .DS_Store
 relazione/Relazione.pdf
+relazione/Regole-Operazionali.pdf
 
 # Directories
 doc/
