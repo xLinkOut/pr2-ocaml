@@ -49,18 +49,18 @@ and evFun = ide * exp * evT env;;
 
 (* Type checker dinamico *)
 let typecheck (tipo : string) (valore : evT) : bool = match tipo with
-    | "int"    -> (match valore with
+    | "int" -> (match valore with
         | Int(_) -> true
-        | _    -> false)
-    | "bool"   -> (match valore with
+        | _ -> false)
+    | "bool" -> (match valore with
         | Bool(_) -> true
-        | _     -> false)
+        | _ -> false)
     | "string" -> (match valore with
         | String(_) -> true
-        | _       -> false)
-    | "dict"   -> (match valore with
+        | _ -> false)
+    | "dict" -> (match valore with
 		| DictValue(_) -> true
-		| _          -> false)
+		| _ -> false)
 	| _ -> failwith("Non è un tipo valido")
 ;;
 
