@@ -155,6 +155,18 @@ let rec validate list = match list with
         | false -> (k,v)::(validate tail)
 ;;
 
+(*
+    Funzione di ricerca in una lista. Equivalente a List.mem.
+    @params: 
+        <key>  : chiave da cercare
+        <list> : lista in cui cercare la chiave
+   @return: true se la chiave viene trovata, false altrimenti 
+*)
+let rec exists (key : ide) (l : ide list) : bool = match l with
+    | [] -> false 
+    | k::tail -> k = key || exists key tail
+;;
+
 (* Interprete del linguaggio *)
 let rec eval (e : exp) (ambiente : evT env) : evT = match e with
     | Eint n -> Int n
@@ -359,7 +371,7 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
                     match dict with
                         | [] -> []
                         | (k, v)::tail -> 
-                            if (List.mem k l) then (k, v)::(filter l tail) 
+                            if (exists k l) then (k, v)::(filter l tail)
                             else filter l tail
                 in DictValue(filter keyList evaluatedDict)
         | _ -> failwith("<dict> non è un dizionario"))
