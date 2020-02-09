@@ -136,13 +136,17 @@ let rec find key list = match list with
 
 (*
     Funzione che permette di validare la lista di inizializzazione
-    di un dizionario, in modo da rimuovere eventuali coppie con la 
+    di un dizionario, in modo da controllare eventuali coppie con la 
     stessa chiave.
     Si è scelto di filtrare la lista piuttosto che lanciare un errore
     nel caso un cui venga trovata una chiave duplicata, per permettere
     comunque la creazione del dizionario inserendo soltanto l'ultima occorrenza
     della coppia con quella specifica chiave; tuttavia, è necessaria
     la modifica di una sola riga di codice per cambiare questo comportamento.
+    In particolare, quando viene trovata una chiave duplicata si può scegliere 
+    di continuare la validazione della lista, senza aggiungere la coppia
+    incriminita, oppure lanciare una failwith ed interrompere la creazione
+    del dizionario.
     @params:
         <list> : lista da validare, corrisponde a <initList>
     @return: una nuova lista filtrata, senza le eventuali coppie
@@ -217,10 +221,10 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
         con le quali inizializzare il dizionario, altrimenti ne crea uno vuoto.
         Le coppie saranno controllate per mantenere la proprietà di unicità delle 
         chiavi all'interno del dizionario. Il modo con cui le coppie verranno controllate
-        può essere cambiando utilizzando una diversa funzione di controllo, scegliendo
-        tra <filterInitList>, che ritorna una nuova lista filtrata senza doppioni, oppure
-        <validateInitList> che invece blocca l'esecuzione se la lista contiene almeno
-        una chiave doppia.
+        può essere mutato agendo sulla funzione <validate>: è possibile modificare il suo 
+        comportamento quando viene trovata una chiave duplicata da "salto la chiave, lasciando
+        l'occorrenza già trovata nel dizionario" a "errore, lancio una failwith", bloccando
+        l'esecuzione del programma (vedere la specifica della funzione per maggiori dettagli).
         @params:
             <initList> : lista di coppie (<key>, <value>) (può anche essere vuota)
         @fail: se <key> è già presente in una qualche coppia all'interno di <initList>
