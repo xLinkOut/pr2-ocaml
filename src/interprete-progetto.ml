@@ -402,8 +402,8 @@ eval myDict myEnv;;
 (* DictValue[("mele", Int 430); ... ;("pere", Int 217)] *)
 
 (* Costruttore, chiave non unica *)
-eval (Dict([("mele",Eint(30));("mele",Eint(40))])) myEnv;;
-(* DictValue [("mele", Int 40)] *)
+eval (Dict([("banane",Eint(20));("mele",Eint(30));("mele",Eint(40));("arance",Eint(50))])) myEnv;;
+(* DictValue [("banane", Int 20); ("mele", Int 40); ("arance", Int 50)] *)
 
 (* Costrutture, chiave vuota *)
 eval (Dict([("",Eint(30));("mele",Eint(40))])) myEnv;;
