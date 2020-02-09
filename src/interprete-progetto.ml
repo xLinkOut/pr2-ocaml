@@ -157,6 +157,8 @@ let rec validate list = match list with
 
 (*
     Funzione di ricerca in una lista. Equivalente a List.mem.
+    Si differenzia dalla funzione <find> in quanto opera su liste
+    di stringhe piuttosto che su liste di coppie.
     @params: 
         <key>  : chiave da cercare
         <list> : lista in cui cercare la chiave
@@ -185,26 +187,27 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
         let g = (eval a ambiente) in
         if (typecheck "bool" g) then 
             (if g = Bool(true) then (eval b ambiente) else (eval c ambiente))
-        else failwith ("non boolean guard")
+        else failwith ("<guardia> non booleana")
     | Let(i, e1, e2) -> eval e2 (bind ambiente i (eval e1 ambiente))
     | Fun(i, a) -> FunVal(i, a, ambiente)
     | FunCall(f, eArg) ->
         let fClosure = (eval f ambiente) in
         (match fClosure with
             | FunVal(arg, fBody, fDecEnv) -> eval fBody (bind fDecEnv arg (eval eArg ambiente))
-            (* Per ottenere un linguaggio che funzioni con scoping statico, la funzione deve essere valutata nel suo
-                ambiente di dichiarazione "fDecEnv". Altrimenti, se si volesse utilizzare uno scoping dinamico, 
-                bisognerebbe valutare la funzione nell'ambiente corrente "ambiente". *)
+            (* Per ottenere un linguaggio che funzioni con scoping statico, 
+                la funzione deve essere valutata nel suo ambiente di dichiarazione "fDecEnv".
+                Altrimenti, se si volesse utilizzare uno scoping dinamico, bisognerebbe 
+                valutare la funzione nell'ambiente corrente "ambiente". *)
             | RecFunVal(g, (arg, fBody, fDecEnv)) ->
                 let aVal = (eval eArg ambiente) in
                 let rEnv = (bind fDecEnv g fClosure) in
                     let aEnv = (bind rEnv arg aVal) in
                     eval fBody aEnv
-            | _ -> failwith("non functional value"))
-    | Letrec(f, funDef, bodyOfLet) ->
+            | _ -> failwith("<valore> non di funzione"))
+    | Letrec(f, funDef, lBody) ->
         (match funDef with
-        | Fun(i, fBody) -> let r1 = (bind ambiente f (RecFunVal(f, (i, fBody, ambiente)))) in eval bodyOfLet r1
-        | _ -> failwith("non functional def"))
+        | Fun(i, fBody) -> let r1 = (bind ambiente f (RecFunVal(f, (i, fBody, ambiente)))) in eval lBody r1
+        | _ -> failwith("<definizione> non di funzione"))
     
     (* Estensione dizionari *)
 
