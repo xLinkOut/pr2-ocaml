@@ -390,6 +390,7 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
 (* Creazione ambiente, inizialmente vuoto *)
 let myEnv = emptyenv Unbound;; 
 (* val env0 : '_weakX -> evT = <fun> *)
+Printf.printf "Creazione ambiente: OK\n";;
 
 (* Costruttore, con lista di inizializzazione valida *)
 let myDict = Dict([
@@ -399,84 +400,117 @@ let myDict = Dict([
     ("pere",   Eint(217))
 ]);;
 eval myDict myEnv;;
+Printf.printf "Costruttore, con lista di inizializzazione valida: OK\n";;
 (* DictValue[("mele", Int 430); ... ;("pere", Int 217)] *)
 
 (* Costruttore, chiave non unica *)
 eval (Dict([("banane",Eint(20));("mele",Eint(30));("mele",Eint(40));("arance",Eint(50))])) myEnv;;
+Printf.printf "Costruttore, chiave non unica: OK\n";;
 (* DictValue [("banane", Int 20); ("mele", Int 40); ("arance", Int 50)] *)
 
 (* Costrutture, chiave vuota *)
-eval (Dict([("",Eint(30));("mele",Eint(40))])) myEnv;;
+try eval (Dict([("",Eint(30));("mele",Eint(40))])) myEnv
+with Failure(msg) -> Printf.printf "Costrutture, chiave vuota: OK (%s)\n" msg; DictValue([]);;
 (* Exception: Failure "<key> è una stringa vuota" *)
+
+Printf.printf "\n";;
 
 (* Insert, chiave non esistente *)
 eval (Insert("kiwi", Eint(300), myDict)) myEnv;; 
+Printf.printf "Insert, chiave non esistente: OK\n";;
 (* [("mele", Int 430); ... ;("kiwi", Int 300)] *)
 
 (* Insert, chiave esistente *)
-eval (Insert("mele", Eint(550), myDict)) myEnv;; 
+try eval (Insert("mele", Eint(550), myDict)) myEnv;
+with Failure(msg) -> Printf.printf "Insert, chiave esistente: OK (%s)\n" msg; DictValue([]);;
 (* Exception: Failure "<key> duplicata, non posso inserire la coppia" *)
 
 (* Insert, chiave vuota *)
-eval (Insert("", Eint(720), myDict)) myEnv;;
+try eval (Insert("", Eint(720), myDict)) myEnv
+with Failure(msg) -> Printf.printf "Insert, chiave vuota: OK (%s)\n" msg; DictValue([]);;
 (* Exception: Failure "<key> è una stringa vuota" *)
+
+Printf.printf "\n";;
 
 (* Delete, chiave esistente *)
 eval (Delete("banane", myDict)) myEnv;;
+Printf.printf "Delete, chiave esistente: OK\n";;
 (* DictValue [("mele", Int 430); ("arance", Int 525); ("pere", Int 217)] *)
 
 (* Delete, chiave non esistente *)
 eval (Delete("pesche", myDict)) myEnv;;
+Printf.printf "Delete, chiave non esistente: OK\n";;
 (* DictValue [("mele", Int 430); ("banane", Int 312); ("arance", Int 525); ("pere", Int 217)]) *)
 
 (* Delete, chiave vuota *)
-eval (Delete("", myDict)) myEnv;;
+try eval (Delete("", myDict)) myEnv
+with Failure(msg) -> Printf.printf "Delete, chiave vuota: OK (%s)\n" msg; DictValue([]);;
 (* Exception: Failure "<key> è una stringa vuota" *)
+
+Printf.printf "\n";;
 
 (* HasKey, chiave esistente *)
 eval (HasKey("arance", myDict)) myEnv;;
+Printf.printf "HasKey, chiave esistente: OK\n";;
 (* Bool true *)
 
 (* HasKey, chiave non esistente *)
 eval (HasKey("kiwi", myDict)) myEnv;;
+Printf.printf "HasKey, chiave non esistente: OK\n";;
 (* Bool false *)
 
 (* HasKey, chiave vuota *)
-eval (HasKey("", myDict)) myEnv;;
+try eval (HasKey("", myDict)) myEnv
+with Failure(msg) -> Printf.printf "HasKey, chiave vuota: OK (%s)\n" msg; DictValue([]);;
 (* Exception: Failure "<key> è una stringa vuota" *)
+
+Printf.printf "\n";;
 
 (* Iterate, funzione incremento (+1) *)
 eval (Iterate(Fun("y", Sum(Den "y", Eint 1)), myDict)) myEnv;;
+Printf.printf "Iterate, funzione incremento (+1): OK\n";;
 (* DictValue [("mele", Int 431); ("banane", Int 313); ("arance", Int 526); ("pere", Int 218)]) *)
+
+Printf.printf "\n";;
 
 (* Fold, funzione somma *)
 eval (Fold(Fun("y", Sum(Den "y", Eint 0)), myDict)) myEnv;;
+Printf.printf "Fold, funzione somma: OK\n";;
 (* Int 1484 *)
 
 (* Fold, funzione differenza *)
 eval (Fold(Fun("y", Diff(Den "y", Eint 5)), myDict)) myEnv;;
+Printf.printf "Fold, funzione differenza: OK\n";;
 (* Int 1464 *)
 
 (* Fold, funzione prodotto *)
 eval (Fold(Fun("y", Prod(Den "y", Eint 2)), myDict)) myEnv;;
+Printf.printf "Fold, funzione prodotto: OK\n";;
 (* Int 2968 *)
 
 (* Fold, incompatibile *)
-eval (Fold(Fun("y", Or(Den "y", Ebool false)), myDict)) myEnv;;
+try eval (Fold(Fun("y", Or(Den "y", Ebool false)), myDict)) myEnv
+with Failure(msg) -> Printf.printf "Fold, incompatibile: OK (%s)\n" msg; DictValue([]);;
 (* Exception: Failure "Errore di tipo" *)
+
+Printf.printf "\n";;
 
 (* Filter *)
 eval (Filter(["mele"; "pere"], myDict)) myEnv;;
+Printf.printf "Filter: OK\n";;
 (* DictValue [("mele", Int 430); ("pere", Int 217)] *)
 
 (* Filter, con una chiave inesistente *)
 eval (Filter(["mele";"pesche"], myDict)) myEnv;;
+Printf.printf "Filter, con una chiave inesistente: OK\n";;
 (* DictValue [("mele", Int 430)] *)
 
 (* Filter, con tutte le chiavi inesistenti *)
 eval (Filter(["kiwi";"pesche"], myDict)) myEnv;;
+Printf.printf "Filter, con tutte le chiavi inesistenti: OK\n";;
 (* DictValue [] *)
 
 (* Filter, con una lista vuota *)
 eval (Filter([], myDict)) myEnv;;
+Printf.printf "Filter, con una lista vuota: OK\n";;
 (* DictValue [] *)
