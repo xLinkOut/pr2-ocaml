@@ -274,8 +274,7 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
                         | (k, v)::tail ->
                             (* se ho trovato una chiave uguale, non inserisco la coppia *)
                             if (key = k) then failwith("<key> duplicata, non posso inserire la coppia") (*(k, v)::tail*)
-                            (* altrimenti itero sul dizionario per cercare un'eventuale chiave già esistente,
-                                inserendo, nel caso, la nuova coppia in fondo *)
+                            (* altrimenti itero sul dizionario *)
                             else (k, v)::(insert key value tail))
                 in DictValue(insert key (eval value ambiente) evaluatedDict)
         | _ -> failwith("<dict> non è un dizionario"))
