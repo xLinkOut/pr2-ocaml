@@ -119,15 +119,12 @@ let rec checker (e : exp) (env : evT env) : evT =
                     if t2 = t3 then t2
                     else failwith("branch <if> e branch <else> hanno tipi differenti")
         | _ -> failwith("<guardia> non booleana"))
-    | Dict l -> (match l with
-        | [] -> DictValue
-        | _ -> 
-            let rec explore (list) =
-                (match list with
-                    [] -> DictValue
-                    | (k,v)::tail -> explore tail
-                    | _ -> failwith("<list> non è una lista di coppie"))
-            in explore l)
+    | Dict(l) ->
+        (let rec explore (list) = (match list with
+            | [] -> DictValue
+            | (k,v)::tail -> explore tail
+            | _ -> failwith("<list> non è una lista di coppie"))
+        in explore l)
     | Insert (k,v,d) -> 
         (match (k,v,d) with
             | (ide, exp, dict) -> DictValue
