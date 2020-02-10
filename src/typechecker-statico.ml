@@ -48,7 +48,6 @@ let bind (env : 't env) (i : ide) (v : 't) = function
 type evT =
     | Int
     | Bool
-    | String 
     | Unbound
     | FunVal of evFun 
     | RecFunVal of ide * evFun
@@ -122,33 +121,32 @@ let rec checker (e : exp) (env : evT env) : evT =
     | Dict(l) ->
         (let rec explore (list) = (match list with
             | [] -> DictValue
-            | (k,v)::tail -> explore tail
-            | _ -> failwith("<list> non è una lista di coppie"))
+            | (k,v)::tail -> explore tail)
         in explore l)
     | Insert (k,v,d) -> 
-        (match (k,v,d) with
-            | (ide, exp, dict) -> DictValue
+        (match (k,v,checker d env) with
+            | (ide, exp, DictValue) -> DictValue
             | (_, _, _)   -> failwith("<key> non è una stringa/<dict> non è un dizionario"))
     | Delete (k,d) ->
-        (match (k,d) with
-            | (ide, dict) -> DictValue
-            | (_, _) -> failwith("<key> non è una stringa/<dict> non è un dizionario"))
+        (match (k,checker d env) with
+            | (ide, DictValue) -> DictValue
+            | (_, _)   -> failwith("<key> non è una stringa/<dict> non è un dizionario"))
     | HasKey (k,d) ->
-        (match (k,d) with
-            | (ide, dict) -> Bool
+        (match (k,checker d env) with
+            | (ide, DictValue) -> Bool
             | (_, _) -> failwith("<key> non è una stringa/<dict> non è un dizionario"))
     | Iterate (f,d) ->
-        (match (f,d) with
-            | (evFun, dict) -> DictValue
+        (match (f,checker d env) with
+            | (evFun, DictValue) -> DictValue
             | (_, _) -> failwith("<dict> non è un dizionario"))
     | Fold (f,d) ->
-        (match (f,d) with
-            | (evFun, dict) -> Int
+        (match (f,checker d env) with
+            | (evFun, DictValue) -> Int
             | (_, _) -> failwith("<funct> incompatibile/<dict> non è un dizionario"))
     | Filter (l,d) ->
-        (match (l,d) with
-            | (list, dict) -> DictValue
-            | (_, dict) -> failwith("<list> non è una lista")
+        (match (l,checker d env) with
+            | (key::tail, DictValue) -> DictValue
+            | (_, DictValue) -> failwith("<list> non è una lista")
             | (_, _) -> failwith("<dict> non è un dizionario"))
     | _ -> failwith ("Non supportato")
 ;;
