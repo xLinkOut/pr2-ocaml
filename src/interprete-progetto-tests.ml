@@ -65,60 +65,69 @@ let typecheck (tipo : string) (valore : evT) : bool = match tipo with
 ;;
 
 (* Funzioni primitive *)
-let sum x y  = if (typecheck "int"  x) && (typecheck "int" y)
+let sum x y = if (typecheck "int" x) && (typecheck "int" y)
     then (match (x,y) with
-          (Int(n), Int(u)) -> Int(n + u)
-        | _ -> failwith("Errore durante l'applicazione della funzione"))
-    else failwith("Errore di tipo");;
+        | (Int(n), Int(u)) -> Int(n + u)
+        | _ -> failwith("Errore durante l'applicazione di <sum>"))
+    else failwith("<sum> errore di tipo")
+;;
 
-let diff x y = if (typecheck "int"  x) && (typecheck "int" y)
+let diff x y = if (typecheck "int" x) && (typecheck "int" y)
     then (match (x,y) with
-          (Int(n), Int(u)) -> Int(n - u)
-        | _ -> failwith("Errore durante l'applicazione della funzione"))
-    else failwith("Errore di tipo");;
+        | (Int(n), Int(u)) -> Int(n - u)
+        | _ -> failwith("Errore durante l'applicazione di <diff>"))
+    else failwith("<diff> errore di tipo")
+;;
 
-let prod x y = if (typecheck "int"  x) && (typecheck "int" y)
+let prod x y = if (typecheck "int" x) && (typecheck "int" y)
     then (match (x,y) with
-          (Int(n), Int(u)) -> Int(n * u)
-        | _ -> failwith("Errore durante l'applicazione della funzione"))
-    else failwith("Errore di tipo");;
+        | (Int(n), Int(u)) -> Int(n * u)
+        | _ -> failwith("Errore durante l'applicazione di <prod>"))
+    else failwith("<prod> errore di tipo")
+;;
 
-let eq x y   = if (typecheck "int"  x) && (typecheck "int" y)
+let eq x y = if (typecheck "int" x) && (typecheck "int" y)
     then (match (x,y) with
-          (Int(n), Int(u)) -> Bool(n = u)
-        | _ -> failwith("Errore durante l'applicazione della funzione"))
-    else failwith("Errore di tipo");;
+        | (Int(n), Int(u)) -> Bool(n = u)
+        | _ -> failwith("Errore durante l'applicazione di <eq>"))
+    else failwith("<eq> errore di tipo")
+;;
 
-
-let vel x y  = if (typecheck "bool" x) && (typecheck "bool" y)
+let vel x y = if (typecheck "bool" x) && (typecheck "bool" y)
     then (match (x,y) with
-          (Bool(b), Bool(e)) -> Bool(b || e)
-        | _ -> failwith("Errore durante l'applicazione della funzione"))
-    else failwith("Errore di tipo");;
+        | (Bool(b), Bool(e)) -> Bool(b || e)
+        | _ -> failwith("Errore durante l'applicazione di <vel>"))
+    else failwith("<vel> errore di tipo")
+;;
 
-let et x y   = if (typecheck "bool" x) && (typecheck "bool" y)
+let et x y = if (typecheck "bool" x) && (typecheck "bool" y)
     then (match (x,y) with
-          (Bool(b), Bool(e)) -> Bool(b && e)
-        | _ -> failwith("Errore durante l'applicazione della funzione"))
-    else failwith("Errore di tipo");;
+        | (Bool(b), Bool(e)) -> Bool(b && e)
+        | _ -> failwith("Errore durante l'applicazione di <et>"))
+    else failwith("<et> errore di tipo")
+;;
 
-let minus x  = if (typecheck "int"  x)
+let minus x = if (typecheck "int" x)
     then (match x with
-          Int(n) -> Int(-n)
-        | _ -> failwith("Errore durante l'applicazione della funzione"))
-    else failwith("Errore di tipo");;
+        | Int(n) -> Int(-n)
+        | _ -> failwith("Errore durante l'applicazione di <minus>"))
+    else failwith("<minus> errore di tipo")
+;;
 
-let iszero x = if (typecheck "int"  x)
+let iszero x = if (typecheck "int" x)
     then (match x with
-          Int(n) -> Bool(n=0)
-        | _ -> failwith("Errore durante l'applicazione della funzione"))
-    else failwith("Errore di tipo");;
-let non x    = if (typecheck "bool" x)
+        | Int(n) -> Bool(n=0)
+        | _ -> failwith("Errore durante l'applicazione di <iszero>"))
+    else failwith("<iszero> errore di tipo")
+;;
+
+let non x = if (typecheck "bool" x)
     then (match x with
-          Bool(true)  -> Bool(false)
+        | Bool(true)  -> Bool(false)
         | Bool(false) -> Bool(true)
-        | _ -> failwith("Errore di tipo"))
-    else failwith("Errore di tipo");;
+        | _ -> failwith("<non> errore di tipo"))
+    else failwith("<non> errore di tipo")
+;;
 
 (*
     Funzione ausiliaria per la funzione <validate>, controlla se una 
