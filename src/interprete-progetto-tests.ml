@@ -274,7 +274,7 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
 			se non ne era già presente una con la stessa <key> nel dizionario iniziale
     *)
     | Insert(key, value, dict) -> (match eval dict ambiente with
-        DictValue evaluatedDict ->
+        | DictValue evaluatedDict ->
             if key = "" then failwith("<key> è una stringa vuota")
             else
                 let rec insert (key : ide) (value : evT) (dict : (ide * evT) list) : (ide * evT) list =
@@ -298,7 +298,7 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
 			se era presente nel dizionario iniziale
     *)
     | Delete(key, dict) -> (match eval dict ambiente with
-        DictValue evaluatedDict ->
+        | DictValue evaluatedDict ->
             if key = "" then failwith("<key> è una stringa vuota")
             else
                 let rec delete (key : ide) (dict : (ide * evT) list) : (ide * evT) list =
@@ -319,7 +319,7 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
 		@return: true se la chiave esiste nel dizionario, false altrimenti
     *)
     | HasKey(key, dict) -> (match eval dict ambiente with
-        DictValue evaluatedDict ->
+        | DictValue evaluatedDict ->
             if key = "" then failwith("<key> è una stringa vuota")
             else
                 let rec contains (key : ide) (dict : (ide * evT) list) : bool =
@@ -340,7 +340,7 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
 		@return: un nuovo dizionario di tipo DictValue con i valori ottenuti come risultato della funzione
 	*)
 	| Iterate(funct, dict) -> (match eval funct ambiente, dict with
-		FunVal(_, _, _), Dict evaluatedDict ->
+		| FunVal(_, _, _), Dict evaluatedDict ->
 			let rec apply (f : exp) (dict : (ide * exp) list) (ambiente : evT env) : (ide * evT) list =
 				match dict with
 					| [] -> []
@@ -359,7 +359,7 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
 		@return: un unico valore, risultato della funzione <funct>
 	*)
 	| Fold(funct, dict) -> (match eval funct ambiente, dict with
-		FunVal(_, _, _), Dict evaluatedDict ->
+		| FunVal(_, _, _), Dict evaluatedDict ->
 			let rec fold (f : exp) (dict : (ide * exp) list) (acc : evT) (ambiente : evT env) : evT =
 				match dict with
 					| [] -> acc
@@ -381,7 +381,7 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
 			contenente solo le coppie la cui chiave appartiene a <keyList>
 	*)
     | Filter(keyList, dict) -> (match eval dict ambiente with
-      	DictValue evaluatedDict ->
+      	| DictValue evaluatedDict ->
             let rec filter (l : ide list) (dict : (ide * evT) list) : (ide * evT) list =
                     match dict with
                         | [] -> []
