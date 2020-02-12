@@ -15,8 +15,8 @@ type exp =
     | Not of exp
     | Ifthenelse of exp * exp * exp
     | Let of ide * exp * exp
-    | Fun of ide * exp
-    | FunCall of exp * exp
+    | Fun of ide * exp (* Astrazione funzionale *)
+    | FunCall of exp * exp (* Applicazione di funzione (Apply) *)
     | Letrec of ide * exp * exp
     (* Estensione dizionari *)
     | Dict of (ide * exp) list
@@ -41,11 +41,17 @@ type evT =
     | Bool of bool
     | String of string
     | FunVal of evFun (* Closure *)
-    | RecFunVal of ide * evFun
+    | RecFunVal of ide * evFun (* Rec Closure *)
     | Unbound
     (* Estensione dizionari *)
     | DictValue of (ide * evT) list
 and evFun = ide * exp * evT env;;
+(* ide: nome del parametro formale *)
+(* exp: codice della funzione *)
+(* env: ambiente al momento della dichiarazione *)
+(* Scoping statico -> i riferimenti non locali sono 
+    risolti nell'ambiente di dichiarazione della funzione *)
+
 
 (* Type checker dinamico *)
 let typecheck (tipo : string) (valore : evT) : bool = match tipo with
@@ -203,7 +209,7 @@ let rec eval (e : exp) (ambiente : evT env) : evT = match e with
         else failwith ("<guardia> non booleana")
     | Let(i, e1, e2) -> eval e2 (bind ambiente i (eval e1 ambiente))
     | Fun(i, a) -> FunVal(i, a, ambiente)
-    | FunCall(f, eArg) ->
+    | FunCall(f, eArg) -> (* f: nome della funzione da invocare *)
         let fClosure = (eval f ambiente) in
         (match fClosure with
             | FunVal(arg, fBody, fDecEnv) -> eval fBody (bind fDecEnv arg (eval eArg ambiente))
